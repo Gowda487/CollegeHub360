@@ -1,0 +1,10 @@
+{
+  "name": "CollegeHub360",
+  "description": "AI-Powered Smart Academic Management Portal with camera-based attendance, OCR ID recognition, and performance analytics.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

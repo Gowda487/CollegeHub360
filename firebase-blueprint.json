@@ -1,0 +1,73 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Student profile information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "course": { "type": "string" },
+        "year": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "course", "year"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Attendance records marked via OCR/Camera",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["present", "absent"] },
+        "session": { "type": "string" }
+      },
+      "required": ["studentId", "date", "status"]
+    },
+    "Mark": {
+      "title": "Mark",
+      "description": "Academic performance marks",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "subject": { "type": "string" },
+        "score": { "type": "number" },
+        "total": { "type": "number" },
+        "type": { "type": "string", "enum": ["assignment", "exam", "quiz"] },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "subject", "score", "total", "type", "date"]
+    },
+    "Recommendation": {
+      "title": "Recommendation",
+      "description": "AI-generated study and career recommendations",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "text": { "type": "string" },
+        "category": { "type": "string", "enum": ["study", "career"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "text", "category", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Individual student profiles"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "Attendance",
+      "description": "Individual attendance records"
+    },
+    "/marks/{markId}": {
+      "schema": "Mark",
+      "description": "Individual academic marks"
+    },
+    "/recommendations/{recId}": {
+      "schema": "Recommendation",
+      "description": "AI-generated recommendations"
+    }
+  }
+}
