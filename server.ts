@@ -84,6 +84,95 @@ async function startServer() {
     }
   });
 
+  // MindBolt AI Chatbot
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { message, history, studentData } = req.body;
+      
+      const chat = ai.chats.create({
+        model: "gemini-3-flash-preview",
+        config: {
+          systemInstruction: `You are MindBolt AI, a hyper-intelligent, energetic, and helpful academic assistant for students at this institution. 
+          You are knowledgeable about the campus, academic regularity, performance analysis, and career guidance.
+          User context: ${JSON.stringify(studentData || 'Not logged in')}.
+          Be direct, encouraging, and use a modern, professional yet slightly edgy tech-startup tone.`,
+        },
+        history: history || []
+      });
+
+      const response = await chat.sendMessage({ message });
+      res.json({ text: response.text });
+    } catch (error) {
+      console.error("Chat Error:", error);
+      res.status(500).json({ error: "Failed to process chat" });
+    }
+  });
+
+  // AI Marks Parser for Faculty
+  app.post("/api/ai/parse-marks", async (req, res) => {
+    try {
+      const { text, subject } = req.body;
+      
+      const prompt = `Act as an academic data processor. Parse the following unstructured student marks text for the subject "${subject}". 
+      Return ONLY a JSON array of objects with "studentId", "name", and "marks" (number 0-100).
+      If data is missing, guess or use "Unknown". 
+      Only return the JSON array, no markdown blocks or extra text.
+      Text: ${text}`;
+
+      const result = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ role: "user", parts: [{ text: prompt }] }]
+      });
+      
+      const responseText = result.text?.trim() || "[]";
+      
+      // Clean up potential markdown formatting
+      const jsonString = responseText.replace(/```json|```/g, '');
+      const parsedData = JSON.parse(jsonString);
+      
+      res.json({ data: parsedData });
+    } catch (error) {
+      console.error("AI Marks Parse Error:", error);
+      res.status(500).json({ error: "Failed to parse marks text" });
+    }
+  });
+
+  // AI Attendance Voice/Text Parser
+  app.post("/api/ai/parse-attendance", async (req, res) => {
+    try {
+      const { text, subject, className, hour, course } = req.body;
+      
+      const prompt = `Act as an academic registrar. Parse this attendance report for:
+      Course: ${course}
+      Subject: ${subject}
+      Class: ${className}
+      Hour: ${hour}
+      
+      Unstructured Report: "${text}"
+      
+      Instructions:
+      1. Identify which students are PRESENT and which are ABSENT.
+      2. If the report says "everyone present except...", list all IDs.
+      3. Return ONLY a JSON object: { "present": ["ID1", "ID2"], "absent": ["ID3"], "summary": "Short description" }.
+      4. Use IDs like "USN001", "USN002", etc.
+      Only return JSON, no markdown.`;
+
+      const result = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ role: "user", parts: [{ text: prompt }] }]
+      });
+      
+      const responseText = result.text?.trim() || "{}";
+      const jsonString = responseText.replace(/```json|```/g, '');
+      const parsedData = JSON.parse(jsonString);
+      
+      res.json({ data: parsedData });
+    } catch (error) {
+      console.error("AI Attendance Error:", error);
+      res.status(500).json({ error: "AI failed to parse attendance" });
+    }
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

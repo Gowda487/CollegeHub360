@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   ArrowRight, 
@@ -9,12 +9,41 @@ import {
   Cpu, 
   Zap,
   CheckCircle2,
-  Lock
+  Lock,
+  GraduationCap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query } from 'firebase/firestore';
+
+import AIChatbox from '@/components/AIChatbox';
 
 export default function LandingPage() {
+  const [stats, setStats] = useState({
+    students: '0',
+    scans: '0',
+    classes: '0',
+    uptime: '99.9%'
+  });
+
+  useEffect(() => {
+    // Real-time Student Count
+    const unsubStudents = onSnapshot(collection(db, 'students'), (snap) => {
+      setStats(prev => ({ ...prev, students: snap.size.toString() }));
+    });
+
+    // Real-time Attendance Count
+    const unsubAttendance = onSnapshot(collection(db, 'attendance'), (snap) => {
+      setStats(prev => ({ ...prev, scans: snap.size.toString() }));
+    });
+
+    return () => {
+      unsubStudents();
+      unsubAttendance();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-blue-100 selection:text-blue-900">
       {/* Navigation */}
@@ -30,8 +59,8 @@ export default function LandingPage() {
             <a href="#features" className="text-sm font-medium text-[#4B5563] hover:text-[#1A1A1A]">Features</a>
             <a href="#solutions" className="text-sm font-medium text-[#4B5563] hover:text-[#1A1A1A]">Solutions</a>
             <a href="#about" className="text-sm font-medium text-[#4B5563] hover:text-[#1A1A1A]">About</a>
-            <Button variant="outline" className="rounded-full px-6">Login</Button>
-            <Button className="bg-blue-600 hover:bg-blue-700 rounded-full px-8">Get Started</Button>
+            <Button onClick={() => window.location.href = '/login'} variant="outline" className="rounded-full px-6">Login</Button>
+            <Button onClick={() => window.location.href = '/login'} className="bg-blue-600 hover:bg-blue-700 rounded-full px-8">Enter Portal</Button>
           </div>
         </div>
       </nav>
@@ -57,29 +86,78 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button 
-                onClick={() => window.location.href = '/overview'}
+                onClick={() => {
+                  const el = document.getElementById('portals');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
                 size="lg" className="h-14 px-10 bg-blue-600 hover:bg-blue-700 rounded-full text-lg font-semibold group"
               >
-                Enter Portal
+                Access Terminals
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button size="lg" variant="outline" className="h-14 px-10 rounded-full text-lg font-semibold">
-                View Demo
+              <Button onClick={() => window.location.href = '/overview'} size="lg" variant="outline" className="h-14 px-10 rounded-full text-lg font-semibold">
+                Explore Dashboard
               </Button>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Stats/Logo Section */}
+      {/* Dual Portal Section */}
+      <section id="portals" className="py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card className="rounded-[40px] border-none bg-slate-900 text-white p-12 relative overflow-hidden group hover:scale-[1.02] transition-all duration-500 shadow-2xl">
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Lock className="w-32 h-32" />
+              </div>
+              <div className="relative z-10">
+                <Badge className="bg-blue-500/20 text-blue-400 border-none mb-6 px-4">FACULTY & STAFF</Badge>
+                <h3 className="text-4xl font-black mb-4 tracking-tighter">Admin Terminal</h3>
+                <p className="text-slate-400 font-medium text-lg leading-relaxed mb-10 max-w-sm">
+                  Record attendance via OCR, conduct AI-powered mark entry, and manage the student lifecycle.
+                </p>
+                <Button 
+                  onClick={() => window.location.href = '/login'}
+                  className="h-14 px-12 bg-white text-slate-900 hover:bg-slate-100 rounded-full font-black text-lg"
+                >
+                  Enter Admin Suite
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="rounded-[40px] border-none bg-white p-12 relative overflow-hidden group hover:scale-[1.02] transition-all duration-500 shadow-2xl ring-1 ring-slate-100">
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                <GraduationCap className="w-32 h-32 text-slate-900" />
+              </div>
+              <div className="relative z-10">
+                <Badge className="bg-blue-50 text-blue-600 border-none mb-6 px-4">STUDENTS ONLY</Badge>
+                <h3 className="text-4xl font-black mb-4 tracking-tighter text-slate-900">Student Portal</h3>
+                <p className="text-slate-500 font-medium text-lg leading-relaxed mb-10 max-w-sm">
+                  View your semester progress, get Gemini AI career coaching, and track campus attendance.
+                </p>
+                <Button 
+                  onClick={() => window.location.href = '/login'}
+                  variant="outline"
+                  className="h-14 px-12 border-slate-200 text-slate-900 hover:bg-slate-50 rounded-full font-black text-lg"
+                >
+                  Access My Records
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
       <section className="py-20 border-y border-[#E5E7EB] bg-[#F9FAFB]">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
             {[
-              { label: 'Institutions', value: '250+' },
-              { label: 'Active Students', value: '1M+' },
-              { label: 'Reports Generated', value: '500k+' },
-              { label: 'Success Rate', value: '99.9%' },
+              { label: 'Active Profiles', value: stats.students },
+              { label: 'Identity Scans', value: stats.scans },
+              { label: 'Analytic Reports', value: stats.scans },
+              { label: 'System Health', value: stats.uptime },
             ].map((stat) => (
               <div key={stat.label}>
                 <p className="text-4xl font-bold text-[#1A1A1A] mb-2">{stat.value}</p>
@@ -162,20 +240,35 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <AIChatbox studentData={{ name: 'Guest User' }} />
     </div>
   );
 }
 
 function FeatureCard({ icon: Icon, title, description }: { icon: any, title: string, description: string }) {
   return (
-    <Card className="border-none bg-[#F9FAFB] hover:bg-[#F3F4F6] transition-colors p-8 rounded-3xl">
+    <Card className="border-none bg-white shadow-xl shadow-slate-100/50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 p-10 rounded-[40px] group border border-slate-50">
       <CardContent className="p-0">
-        <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-sm">
-          <Icon className="w-7 h-7 text-blue-600" />
+        <div className="w-16 h-16 rounded-[24px] bg-slate-50 flex items-center justify-center mb-8 border border-slate-100 group-hover:bg-blue-600 group-hover:border-blue-600 transition-colors">
+          <Icon className="w-8 h-8 text-slate-900 group-hover:text-white transition-colors" />
         </div>
-        <h3 className="text-xl font-bold mb-4">{title}</h3>
-        <p className="text-[#6B7280] leading-relaxed">{description}</p>
+        <h3 className="text-2xl font-black mb-4 tracking-tight text-slate-900">{title}</h3>
+        <p className="text-slate-500 font-medium leading-relaxed">{description}</p>
       </CardContent>
     </Card>
   );
 }
+
+function Badge({ children, className }: { children: React.ReactNode, className?: string }) {
+    return (
+        <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2", className)}>
+            {children}
+        </span>
+    );
+}
+
+function cn(...inputs: any[]) {
+    return inputs.filter(Boolean).join(' ');
+}
+

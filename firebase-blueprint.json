@@ -2,72 +2,82 @@
   "entities": {
     "Student": {
       "title": "Student",
-      "description": "Student profile information",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "email": { "type": "string" },
-        "course": { "type": "string" },
-        "year": { "type": "string" }
-      },
-      "required": ["id", "name", "email", "course", "year"]
-    },
-    "Attendance": {
-      "title": "Attendance",
-      "description": "Attendance records marked via OCR/Camera",
+      "description": "Student profile and overall status",
       "type": "object",
       "properties": {
         "studentId": { "type": "string" },
-        "date": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["present", "absent"] },
-        "session": { "type": "string" }
+        "name": { "type": "string" },
+        "course": { "type": "string" },
+        "gpa": { "type": "number" },
+        "attendanceRate": { "type": "number" },
+        "totalClasses": { "type": "number" },
+        "attendedClasses": { "type": "number" },
+        "email": { "type": "string" }
       },
-      "required": ["studentId", "date", "status"]
+      "required": ["studentId", "name", "course"]
     },
     "Mark": {
       "title": "Mark",
-      "description": "Academic performance marks",
+      "description": "Semester marks for a student",
       "type": "object",
       "properties": {
         "studentId": { "type": "string" },
-        "subject": { "type": "string" },
-        "score": { "type": "number" },
-        "total": { "type": "number" },
-        "type": { "type": "string", "enum": ["assignment", "exam", "quiz"] },
-        "date": { "type": "string", "format": "date-time" }
-      },
-      "required": ["studentId", "subject", "score", "total", "type", "date"]
+        "semester": { "type": "string" },
+        "subjects": {
+          "type": "array",
+          "description": "List of subject scores",
+          "items": {
+            "type": "object",
+            "properties": {
+              "subject": { "type": "string" },
+              "score": { "type": "number" },
+              "max": { "type": "number" }
+            }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     },
-    "Recommendation": {
-      "title": "Recommendation",
-      "description": "AI-generated study and career recommendations",
+    "AttendanceRecord": {
+      "title": "Attendance Record",
+      "description": "A single attendance entry",
       "type": "object",
       "properties": {
         "studentId": { "type": "string" },
-        "text": { "type": "string" },
-        "category": { "type": "string", "enum": ["study", "career"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "name": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["present", "late", "absent"] },
+        "location": { "type": "string" }
+      }
+    },
+    "User": {
+      "title": "User",
+      "description": "App user roles and permissions",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "student"] },
+        "studentId": { "type": "string", "description": "Linked student profile for student role" }
       },
-      "required": ["studentId", "text", "category", "createdAt"]
+      "required": ["email", "role"]
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User roles and settings"
+    },
     "/students/{studentId}": {
       "schema": "Student",
-      "description": "Individual student profiles"
-    },
-    "/attendance/{attendanceId}": {
-      "schema": "Attendance",
-      "description": "Individual attendance records"
+      "description": "All student profiles"
     },
     "/marks/{markId}": {
       "schema": "Mark",
-      "description": "Individual academic marks"
+      "description": "Academic records"
     },
-    "/recommendations/{recId}": {
-      "schema": "Recommendation",
-      "description": "AI-generated recommendations"
+    "/attendance/{attendanceId}": {
+      "schema": "AttendanceRecord",
+      "description": "Daily attendance logs"
     }
   }
 }

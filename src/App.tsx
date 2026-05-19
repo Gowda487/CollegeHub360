@@ -15,8 +15,14 @@ import DashboardOverview from './pages/DashboardOverview';
 import AttendancePage from './pages/Attendance';
 import PerformancePage from './pages/Performance';
 
+import LoginPage from './pages/LoginPage';
+import StudentsPage from './pages/StudentsPage';
+import MarksEntry from './pages/MarksEntry';
+import StudentPortal from './pages/StudentPortal';
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
+  const [hasStudentSession, setHasStudentSession] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,12 +30,18 @@ export default function App() {
       setUser(currentUser);
       setLoading(false);
     });
-    return () => unsubscribe();
-  }, []);
 
-  // For Demo Purposes: Allow direct entry to portal even if not logged in to Firebase
-  // In a real app, we'd wait for Firebase.
-  const [isDemoMode, setIsDemoMode] = useState(false);
+    const checkSession = () => {
+      setHasStudentSession(!!localStorage.getItem('student_session'));
+    };
+    checkSession();
+    window.addEventListener('storage', checkSession);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', checkSession);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -47,24 +59,53 @@ export default function App() {
       <Toaster position="top-center" richColors />
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
         
-        {/* Portal Routes */}
+        {/* Protected Portal Routes */}
         <Route path="/overview" element={
-          <DashboardLayout>
-            <DashboardOverview />
-          </DashboardLayout>
+          user ? (
+            <DashboardLayout>
+              <DashboardOverview />
+            </DashboardLayout>
+          ) : <Navigate to="/login" replace />
         } />
 
         <Route path="/attendance" element={
-          <DashboardLayout>
-            <AttendancePage />
-          </DashboardLayout>
+          user ? (
+            <DashboardLayout>
+              <AttendancePage />
+            </DashboardLayout>
+          ) : <Navigate to="/login" replace />
         } />
 
         <Route path="/performance" element={
-          <DashboardLayout>
-            <PerformancePage />
-          </DashboardLayout>
+          user ? (
+            <DashboardLayout>
+              <PerformancePage />
+            </DashboardLayout>
+          ) : <Navigate to="/login" replace />
+        } />
+
+        <Route path="/students" element={
+          user ? (
+            <DashboardLayout>
+              <StudentsPage />
+            </DashboardLayout>
+          ) : <Navigate to="/login" replace />
+        } />
+
+        <Route path="/marks-entry" element={
+          user ? (
+            <DashboardLayout>
+              <MarksEntry />
+            </DashboardLayout>
+          ) : <Navigate to="/login" replace />
+        } />
+
+        <Route path="/student-portal" element={
+          localStorage.getItem('student_session') ? (
+            <StudentPortal />
+          ) : <Navigate to="/login" replace />
         } />
 
         {/* Catch-all */}
