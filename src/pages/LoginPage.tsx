@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, setDoc, doc, deleteDoc, getDoc, getDocFromServer, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, setDoc, doc, deleteDoc, getDoc, getDocFromServer, addDoc, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,15 +38,22 @@ export default function LoginPage() {
 
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         
-        // If sign in succeeds, check if there are ANY admins
-        const adminsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'admin')));
+        // Fast direct lookup of the logged-in user profile
+        const userDocRef = doc(db, 'users', userCredential.user.uid);
+        const userDoc = await getDoc(userDocRef);
         
-        if (adminsSnap.empty) {
-            await setDoc(doc(db, 'users', userCredential.user.uid), {
+        if (!userDoc.exists()) {
+            // Check if there are any admins at all (using fast limit(1))
+            const adminsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'admin'), limit(1)));
+            
+            await setDoc(userDocRef, {
                 email: email,
                 role: 'admin'
             });
-            toast.success("First user promoted to Admin!");
+
+            if (adminsSnap.empty) {
+                toast.success("First user promoted to Admin!");
+            }
         }
         
         toast.success("Admin access granted.");
@@ -54,7 +61,7 @@ export default function LoginPage() {
         return;
       } catch (signInErr: any) {
         if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
-            const adminsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'admin')));
+            const adminsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'admin'), limit(1)));
             
             if (adminsSnap.empty) {
                 try {
@@ -125,10 +132,10 @@ export default function LoginPage() {
         return;
       }
 
-      // Query 1: By ID (Case Insensitive)
-      const qById = query(collection(db, 'students'), where('studentId', '==', studentIdOrUser.toUpperCase()));
-      // Query 2: By Username (Case Insensitive)
-      const qByUsername = query(collection(db, 'students'), where('username', '==', studentIdOrUser.toLowerCase()));
+      // Query 1: By ID (Case Insensitive) with limit(1)
+      const qById = query(collection(db, 'students'), where('studentId', '==', studentIdOrUser.toUpperCase()), limit(1));
+      // Query 2: By Username (Case Insensitive) with limit(1)
+      const qByUsername = query(collection(db, 'students'), where('username', '==', studentIdOrUser.toLowerCase()), limit(1));
       
       // Try to find existing student
       const [snapId, snapUser] = await Promise.all([getDocs(qById), getDocs(qByUsername)]);
@@ -223,7 +230,7 @@ export default function LoginPage() {
         </div>
 
         <Tabs defaultValue="admin" onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="grid grid-cols-2 mb-8 h-14 rounded-2xl bg-white shadow-sm border border-slate-100 p-1">
+          <TabsList className="max-w-[340px] mx-auto grid grid-cols-2 mb-8 h-14 rounded-2xl bg-white shadow-sm border border-slate-100 p-1">
             <TabsTrigger value="admin" className="rounded-xl data-[state=active]:bg-blue-600 data-[state=active]:text-white font-bold transition-all">Administrator</TabsTrigger>
             <TabsTrigger value="student" className="rounded-xl data-[state=active]:bg-blue-600 data-[state=active]:text-white font-bold transition-all">Student Portal</TabsTrigger>
           </TabsList>

@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import jsQR from 'jsqr';
 import { motion } from 'motion/react';
-import { Camera, Scan, RefreshCw, CheckCircle2, AlertCircle, History, UserPlus, BookOpen, Sparkles, Wifi, WifiOff } from 'lucide-react';
+import { Camera, Scan, RefreshCw, CheckCircle2, AlertCircle, History, UserPlus, BookOpen, Sparkles, Wifi, WifiOff, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,10 +27,13 @@ export default function AttendancePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isExisting, setIsExisting] = useState<boolean | null>(null);
-  const [selectedClass, setSelectedClass] = useState<string>("Group-A");
+  const [selectedYear, setSelectedYear] = useState<string>("1st Year");
+  const [selectedSection, setSelectedSection] = useState<string>("A");
+  const selectedClass = `${selectedYear} - ${selectedSection}`;
   const [selectedHour, setSelectedHour] = useState<string>("1st Hour");
   const [selectedSubject, setSelectedSubject] = useState<string>("Computer Networks");
   const [selectedCourse, setSelectedCourse] = useState<string>("BCA");
+  const [subjectDropdownOpen, setSubjectDropdownOpen] = useState(false);
   const [mode, setMode] = useState<'ATTENDANCE' | 'REGISTRATION' | 'AI_BATCH'>('ATTENDANCE');
   const [aiReport, setAiReport] = useState("");
   const [isAiProcessing, setIsAiProcessing] = useState(false);
@@ -416,17 +419,34 @@ export default function AttendancePage() {
                 </SelectContent>
             </Select>
 
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="w-48 h-12 rounded-2xl bg-white border-slate-100 font-bold">
-                    <SelectValue placeholder="Subject" />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl">
-                    <SelectItem value="Computer Networks">Computer Networks</SelectItem>
-                    <SelectItem value="Operating Systems">Operating Systems</SelectItem>
-                    <SelectItem value="Software Engineering">Software Engineering</SelectItem>
-                    <SelectItem value="Mathematics-III">Mathematics-III</SelectItem>
-                </SelectContent>
-            </Select>
+            <div className="relative">
+                <Input
+                    value={selectedSubject}
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    placeholder="Select/Type Subject"
+                    className="w-48 h-12 rounded-2xl bg-white border-slate-100 font-bold pr-10 focus:ring-2 focus:ring-blue-500 text-slate-800"
+                    onFocus={() => setSubjectDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setSubjectDropdownOpen(false), 200)}
+                />
+                <ChevronDown className="absolute right-3 top-3.5 w-5 h-5 text-slate-400 pointer-events-none" />
+                {subjectDropdownOpen && (
+                    <div className="absolute z-50 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl p-1 max-h-60 overflow-y-auto">
+                        {['Computer Networks', 'Operating Systems', 'Software Engineering', 'Mathematics-III'].map((sub) => (
+                            <button
+                                key={sub}
+                                type="button"
+                                onMouseDown={() => {
+                                    setSelectedSubject(sub);
+                                    setSubjectDropdownOpen(false);
+                                }}
+                                className="w-full text-left rounded-xl px-4 py-2 text-xs font-black text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                            >
+                                {sub}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
 
             <Select value={selectedHour} onValueChange={setSelectedHour}>
                 <SelectTrigger className="w-32 h-12 rounded-2xl bg-white border-slate-100 font-bold">
@@ -439,13 +459,24 @@ export default function AttendancePage() {
                 </SelectContent>
             </Select>
 
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
                 <SelectTrigger className="w-32 h-12 rounded-2xl bg-white border-slate-100 font-bold">
-                    <SelectValue placeholder="Class" />
+                    <SelectValue placeholder="Year" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl">
-                    {['10A', '10B', '11A', '11B', '12A', '12B'].map(c => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                    {['1st Year', '2nd Year', '3rd Year'].map(y => (
+                        <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+
+            <Select value={selectedSection} onValueChange={setSelectedSection}>
+                <SelectTrigger className="w-24 h-12 rounded-2xl bg-white border-slate-100 font-bold">
+                    <SelectValue placeholder="Sec" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl">
+                    {['A', 'B', 'C'].map(sec => (
+                        <SelectItem key={sec} value={sec}>{sec}</SelectItem>
                     ))}
                 </SelectContent>
             </Select>
@@ -676,18 +707,34 @@ export default function AttendancePage() {
                     {/* Class Selection for ALL scans */}
                     <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Mark For Class/Session</Label>
-                        <Select value={selectedClass} onValueChange={setSelectedClass}>
-                            <SelectTrigger className="h-14 rounded-2xl border-slate-100 bg-slate-50 font-black text-slate-700">
-                                <SelectValue placeholder="Select Class" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-2xl">
-                                <SelectItem value="General Entry">Campus Entry (General)</SelectItem>
-                                <SelectItem value="Mathematics-101">Advanced Mathematics</SelectItem>
-                                <SelectItem value="Computing-S2">Computer Architecture</SelectItem>
-                                <SelectItem value="Ethics-S2">Professional Ethics</SelectItem>
-                                <SelectItem value="Workshop-A">Mechanical Workshop</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <Label className="text-[9px] font-bold text-slate-400 uppercase">Year</Label>
+                                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                                    <SelectTrigger className="h-14 rounded-2xl border-slate-100 bg-slate-50 font-black text-slate-700">
+                                        <SelectValue placeholder="Select Year" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl">
+                                        {['1st Year', '2nd Year', '3rd Year'].map(y => (
+                                            <SelectItem key={y} value={y}>{y}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-[9px] font-bold text-slate-400 uppercase">Section</Label>
+                                <Select value={selectedSection} onValueChange={setSelectedSection}>
+                                    <SelectTrigger className="h-14 rounded-2xl border-slate-100 bg-slate-50 font-black text-slate-700">
+                                        <SelectValue placeholder="Select Sec" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl">
+                                        {['A', 'B', 'C'].map(sec => (
+                                            <SelectItem key={sec} value={sec}>{sec}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
                     </div>
 
                     {!isExisting && (

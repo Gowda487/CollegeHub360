@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import ReactMarkdown from 'react-markdown';
+import { cn } from '@/lib/utils';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { collection, onSnapshot, query, where, limit } from 'firebase/firestore';
 import { 
@@ -41,21 +42,38 @@ export default function PerformancePage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMarksLoading, setIsMarksLoading] = useState(false);
 
   useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      setIsLoading(false);
+    }, 300);
+
     const unsub = onSnapshot(collection(db, 'students'), (snapshot) => {
       const studentList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setStudents(studentList);
-      if (studentList.length > 0 && !selectedStudent) {
-        setSelectedStudent(studentList[0]);
-      }
       setIsLoading(false);
+      clearTimeout(fallbackTimer);
+    }, (err) => {
+      console.error("Error loading students in Performance page:", err);
+      setIsLoading(false);
+      clearTimeout(fallbackTimer);
     });
-    return () => unsub();
+    return () => {
+      clearTimeout(fallbackTimer);
+      unsub();
+    };
   }, []);
 
   useEffect(() => {
-    if (selectedStudent) {
+    if (students.length > 0 && !selectedStudent) {
+      setSelectedStudent(students[0]);
+    }
+  }, [students, selectedStudent]);
+
+  useEffect(() => {
+    if (selectedStudent && selectedStudent.studentId) {
+      setIsMarksLoading(true);
       const q = query(
         collection(db, 'marks'), 
         where('studentId', '==', selectedStudent.studentId.toUpperCase())
@@ -80,6 +98,10 @@ export default function PerformancePage() {
             }
         });
         setMarks(Object.values(subjectMap));
+        setIsMarksLoading(false);
+      }, (err) => {
+        console.error("Error loading marks for selected student:", err);
+        setIsMarksLoading(false);
       });
       return () => unsub();
     }
@@ -154,7 +176,7 @@ export default function PerformancePage() {
           </Card>
       ) : (
         <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-8 transition-opacity duration-300", isMarksLoading && "opacity-60")}>
                 {/* Left: Summary and Radar */}
                 <Card className="lg:col-span-1 rounded-[32px] border-none shadow-sm h-fit">
                 <CardHeader>

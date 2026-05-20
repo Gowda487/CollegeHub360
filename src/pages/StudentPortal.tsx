@@ -175,6 +175,7 @@ export default function StudentPortal() {
   const handleSignOut = async () => {
     await signOut(auth);
     localStorage.removeItem('student_session');
+    window.dispatchEvent(new Event('storage'));
     navigate('/');
   };
 
@@ -263,11 +264,7 @@ export default function StudentPortal() {
           </div>
           <div className="flex items-center gap-4">
             <DropdownMenu>
-              <DropdownMenuTrigger 
-                render={
-                  <button className="relative p-2.5 text-slate-500 hover:bg-slate-50 rounded-2xl transition-colors focus:outline-none" />
-                }
-              >
+              <DropdownMenuTrigger className="relative p-2.5 text-slate-500 hover:bg-slate-50 rounded-2xl transition-colors focus:outline-none cursor-pointer">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-blue-600 rounded-full border-2 border-white"></span>
               </DropdownMenuTrigger>
@@ -332,11 +329,7 @@ export default function StudentPortal() {
                 <div className="flex items-center gap-4 mb-2">
                     <h1 className="text-4xl font-black tracking-tight text-slate-900">Hi, {studentData.name.split(' ')[0]} 👋</h1>
                     <Dialog open={isEditingProfile} onOpenChange={setIsEditingProfile}>
-                        <DialogTrigger 
-                            render={
-                                <Button variant="ghost" size="sm" className="rounded-full bg-slate-100 hover:bg-slate-200 text-[10px] font-black uppercase tracking-widest px-4 h-8" />
-                            }
-                        >
+                        <DialogTrigger className="rounded-full bg-slate-100 hover:bg-slate-200 text-[10px] font-black uppercase tracking-widest px-4 h-8 cursor-pointer border border-transparent transition-colors hover:text-slate-900 text-slate-700">
                             Update Profile
                         </DialogTrigger>
                         <DialogContent className="rounded-[32px] border-none shadow-2xl p-8 max-w-md">

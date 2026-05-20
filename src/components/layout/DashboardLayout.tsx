@@ -36,8 +36,25 @@ import { useNavigate } from 'react-router-dom';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = React.useState(true);
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [isMobileOpen, setIsMobileOpen] = React.useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      const mobileStatus = window.innerWidth < 1024;
+      setIsMobile(mobileStatus);
+      if (mobileStatus) {
+        setSidebarOpen(false);
+      } else {
+        setIsMobileOpen(false);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -45,6 +62,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       navigate('/');
     } catch (error) {
       console.error("Sign out error", error);
+    }
+  };
+
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setIsMobileOpen(!isMobileOpen);
+    } else {
+      setSidebarOpen(!isSidebarOpen);
     }
   };
 
@@ -57,19 +82,28 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="flex h-screen bg-[#F8F9FA] text-[#1A1A1A]">
+    <div className="flex h-screen bg-[#F8F9FA] text-[#1A1A1A] overflow-hidden">
+      {/* Mobile Backdrop */}
+      {isMobile && isMobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <motion.aside 
         initial={false}
-        animate={{ width: isSidebarOpen ? 280 : 80 }}
+        animate={isMobile ? { x: isMobileOpen ? 0 : -280, width: 280 } : { x: 0, width: isSidebarOpen ? 280 : 80 }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
         className="fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-[#E5E7EB]"
       >
-        <div className="flex items-center h-16 px-6 border-bottom border-[#E5E7EB]">
+        <div className="flex items-center h-16 px-6 border-b border-[#E5E7EB]">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
               <span className="text-white font-bold">C</span>
             </div>
-            {isSidebarOpen && <span className="font-bold text-xl tracking-tight">Hub360</span>}
+            {(isSidebarOpen || isMobile) && <span className="font-bold text-xl tracking-tight">Hub360</span>}
           </div>
         </div>
 
@@ -78,6 +112,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <Link
               key={item.label}
               to={item.href}
+              onClick={() => {
+                if (isMobile) setIsMobileOpen(false);
+              }}
               className={cn(
                 "flex items-center gap-4 px-3 py-2.5 rounded-xl transition-all duration-200 hover:bg-[#F3F4F6] text-[#4B5563]",
                 location.pathname === item.href && "bg-blue-50 text-blue-600",
@@ -85,8 +122,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               )}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
-              {isSidebarOpen && <span className="font-medium">{item.label}</span>}
-              {!isSidebarOpen && (
+              {(isSidebarOpen || isMobile) && <span className="font-medium">{item.label}</span>}
+              {!(isSidebarOpen || isMobile) && (
                 <div className="absolute left-full ml-4 px-2 py-1 bg-[#1A1A1A] text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
                   {item.label}
                 </div>
@@ -101,8 +138,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             className="w-full justify-start gap-4 px-3 hover:bg-[#FEE2E2] hover:text-[#EF4444]"
             onClick={handleSignOut}
           >
-            <LogOut className="w-5 h-5" />
-            {isSidebarOpen && <span>Sign Out</span>}
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            {(isSidebarOpen || isMobile) && <span>Sign Out</span>}
           </Button>
         </div>
       </motion.aside>
@@ -110,26 +147,22 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main 
         className={cn(
-          "flex-1 flex flex-col transition-all duration-300 ease-in-out",
-          isSidebarOpen ? "pl-[280px]" : "pl-[80px]"
+          "flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out h-screen overflow-y-auto",
+          isMobile ? "pl-0" : (isSidebarOpen ? "pl-[280px]" : "pl-[80px]")
         )}
       >
-        <header className="h-16 bg-white border-b border-[#E5E7EB] flex items-center justify-between px-8 sticky top-0 z-40">
+        <header className="h-16 bg-white border-b border-[#E5E7EB] flex items-center justify-between px-4 md:px-8 sticky top-0 z-30">
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => setSidebarOpen(!isSidebarOpen)}
+            onClick={toggleSidebar}
           >
             <Menu className="w-5 h-5" />
           </Button>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 md:gap-6">
             <DropdownMenu>
-              <DropdownMenuTrigger 
-                render={
-                  <button className="relative p-2 text-[#4B5563] hover:bg-[#F3F4F6] rounded-full transition-colors focus:outline-none" />
-                }
-              >
+              <DropdownMenuTrigger className="relative p-2 text-[#4B5563] hover:bg-[#F3F4F6] rounded-full transition-colors focus:outline-none cursor-pointer">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#EF4444] rounded-full border-2 border-white"></span>
               </DropdownMenuTrigger>
@@ -169,8 +202,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            <div className="flex items-center gap-3 pl-6 border-l border-[#E5E7EB]">
-              <div className="text-right">
+            <div className="flex items-center gap-3 pl-4 md:pl-6 border-l border-[#E5E7EB]">
+              <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold">Dr. Sarah Wilson</p>
                 <p className="text-xs text-[#6B7280]">Academic Head</p>
               </div>
@@ -182,7 +215,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <section className="p-8">
+        <section className="p-4 md:p-8">
           {children}
         </section>
       </main>

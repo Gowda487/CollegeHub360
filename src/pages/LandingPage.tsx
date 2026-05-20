@@ -62,6 +62,11 @@ export default function LandingPage() {
             <Button onClick={() => window.location.href = '/login'} variant="outline" className="rounded-full px-6">Login</Button>
             <Button onClick={() => window.location.href = '/login'} className="bg-blue-600 hover:bg-blue-700 rounded-full px-8">Enter Portal</Button>
           </div>
+          <div className="flex md:hidden items-center">
+            <Button onClick={() => window.location.href = '/login'} className="bg-blue-600 hover:bg-blue-700 rounded-full text-xs px-4 h-9 font-semibold">
+              Portal
+            </Button>
+          </div>
         </div>
       </nav>
 

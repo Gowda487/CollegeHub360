@@ -179,14 +179,10 @@ export default function StudentsPage() {
         <div className="flex flex-wrap gap-3">
             {/* Bulk Password Dialog */}
             <Dialog>
-                <DialogTrigger 
-                    render={
-                        <Button className="h-12 px-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg gap-2">
-                            <ShieldCheck className="w-5 h-5" />
-                            Global Password Setup
-                        </Button>
-                    }
-                />
+                <DialogTrigger className="inline-flex items-center justify-center h-12 px-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100 gap-2 cursor-pointer font-semibold select-none border border-transparent transition-colors">
+                    <ShieldCheck className="w-5 h-5" />
+                    Global Password Setup
+                </DialogTrigger>
                 <DialogContent className="rounded-[32px]">
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-bold flex items-center gap-2">
@@ -232,14 +228,10 @@ export default function StudentsPage() {
             </Dialog>
 
             <Dialog>
-                <DialogTrigger 
-                    render={
-                        <Button variant="outline" className="h-12 px-6 rounded-full border-slate-200 text-slate-600 hover:bg-slate-50 gap-2">
-                            <Plus className="w-5 h-5" />
-                            Add New Student
-                        </Button>
-                    }
-                />
+                <DialogTrigger className="inline-flex items-center justify-center h-12 px-6 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 gap-2 cursor-pointer font-semibold select-none transition-colors">
+                    <Plus className="w-5 h-5" />
+                    Add New Student
+                </DialogTrigger>
             <DialogContent className="rounded-[32px] sm:max-w-[500px]">
                 <form onSubmit={handleAddStudent}>
                     <DialogHeader>
