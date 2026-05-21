@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import jsQR from 'jsqr';
 import { motion } from 'motion/react';
-import { Camera, Scan, RefreshCw, CheckCircle2, AlertCircle, History, UserPlus, BookOpen, Sparkles, Wifi, WifiOff, ChevronDown } from 'lucide-react';
+import { Camera, Scan, RefreshCw, CheckCircle2, AlertCircle, History, UserPlus, BookOpen, Sparkles, Wifi, WifiOff, ChevronDown, Search, FileSpreadsheet, Trash2, Calendar, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
-import { collection, addDoc, query, orderBy, limit, onSnapshot, getDocs, where, doc, getDoc, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, onSnapshot, getDocs, where, doc, getDoc, writeBatch, deleteDoc, updateDoc } from 'firebase/firestore';
 
 export default function AttendancePage() {
   const webcamRef = useRef<Webcam>(null);
@@ -47,6 +47,15 @@ export default function AttendancePage() {
   const [scanStatus, setScanStatus] = useState<'success' | 'error' | null>(null);
   const [lastScannedName, setLastScannedName] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // All-Time Attendance Ledger States
+  const [allAttendance, setAllAttendance] = useState<any[]>([]);
+  const [isLoadingAll, setIsLoadingAll] = useState(true);
+  const [histYear, setHistYear] = useState<string>("All Years");
+  const [histSection, setHistSection] = useState<string>("All Sections");
+  const [histCourse, setHistCourse] = useState<string>("All Courses");
+  const [histSubject, setHistSubject] = useState<string>("All Subjects");
+  const [histSearch, setHistSearch] = useState<string>("");
 
   // Network listener
   useEffect(() => {
@@ -218,6 +227,20 @@ export default function AttendancePage() {
     return () => unsub();
   }, []);
 
+  // Real-time listener for the all-time attendance ledger
+  useEffect(() => {
+    setIsLoadingAll(true);
+    const q = query(collection(db, 'attendance'), orderBy('timestamp', 'desc'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      setAllAttendance(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setIsLoadingAll(false);
+    }, (err) => {
+      console.error("Error fetching all-time attendance for ledger:", err);
+      setIsLoadingAll(false);
+    });
+    return () => unsub();
+  }, []);
+
   const capture = useCallback(async () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
@@ -368,6 +391,101 @@ export default function AttendancePage() {
         setIsAiProcessing(false);
     }
   };
+
+  // All-Time Attendance Ledger Filters & Handlers
+  const toggleAttendanceStatus = async (record: any) => {
+    try {
+      const newStatus = record.status === 'present' ? 'absent' : 'present';
+      const docRef = doc(db, 'attendance', record.id);
+      await updateDoc(docRef, { status: newStatus });
+      toast.success("Status Updated", {
+        description: `${record.name} is now marked as ${newStatus}.`
+      });
+    } catch (e) {
+      console.error("Error updating status:", e);
+      toast.error("Failed to update status.");
+    }
+  };
+
+  const deleteAttendanceRecord = async (recordId: string, studentName: string) => {
+    if (!confirm(`Are you sure you want to permanently delete the attendance log for ${studentName}?`)) return;
+    try {
+      const docRef = doc(db, 'attendance', recordId);
+      await deleteDoc(docRef);
+      toast.success("Log Entry Deleted", {
+        description: `Successfully removed student log from general ledger.`
+      });
+    } catch (e) {
+      console.error("Error deleting record:", e);
+      toast.error("Failed to delete log entry.");
+    }
+  };
+
+  const filteredAllAttendance = allAttendance.filter(record => {
+    // 1. Filter by Course
+    if (histCourse !== "All Courses") {
+      if (record.course !== histCourse) return false;
+    }
+    // 2. Filter by Year
+    if (histYear !== "All Years") {
+      const yearMatch = record.className && record.className.includes(histYear);
+      if (!yearMatch) return false;
+    }
+    // 3. Filter by Section
+    if (histSection !== "All Sections") {
+      const secMatch = record.className && (record.className.endsWith(`- ${histSection}`) || record.className.endsWith(` ${histSection}`));
+      if (!secMatch) return false;
+    }
+    // 4. Filter by Subject
+    if (histSubject !== "All Subjects") {
+      if (record.subject !== histSubject) return false;
+    }
+    // 5. Filter by Search (ID or Name)
+    if (histSearch.trim()) {
+      const searchLower = histSearch.toLowerCase();
+      const idMatch = record.studentId && record.studentId.toLowerCase().includes(searchLower);
+      const nameMatch = record.name && record.name.toLowerCase().includes(searchLower);
+      if (!idMatch && !nameMatch) return false;
+    }
+    return true;
+  });
+
+  const exportToCSV = () => {
+    if (filteredAllAttendance.length === 0) {
+      toast.error("No entries to export.");
+      return;
+    }
+    const headers = ["Student ID", "Name", "Course", "Class/Section", "Subject", "Hour", "Status", "Timestamp"];
+    const rows = filteredAllAttendance.map(r => [
+      r.studentId || "",
+      r.name || "",
+      r.course || "",
+      r.className || "",
+      r.subject || "",
+      r.hour || "",
+      r.status || "",
+      r.timestamp || ""
+    ]);
+    
+    // CSV with BOM and encoding
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+      + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `All_Time_Attendance_Ledger.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("CSV Export completed successfully!");
+  };
+
+  // Helper Stats for filtered set
+  const totalInFilter = filteredAllAttendance.length;
+  const presentInFilter = filteredAllAttendance.filter(r => r.status === 'present').length;
+  const absentInFilter = totalInFilter - presentInFilter;
+  const presentRatio = totalInFilter > 0 ? Math.round((presentInFilter / totalInFilter) * 100) : 0;
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
@@ -870,6 +988,219 @@ export default function AttendancePage() {
               </motion.div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* All-time Attendance Ledger */}
+      <Card className="rounded-[48px] border border-white shadow-2xl bg-white flex flex-col overflow-hidden">
+        <CardHeader className="px-10 pt-10 flex flex-col space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-2xl font-black text-slate-900 flex items-center gap-4">
+                <div className="bg-blue-50 p-2.5 rounded-2xl">
+                  <Calendar className="w-6 h-6 text-blue-600" />
+                </div>
+                All-Time Attendance Ledger
+              </CardTitle>
+              <CardDescription className="opacity-80 font-bold text-slate-400 mt-1">
+                Filter and manage historical records by core year, group, section, dynamic subjects, and individual profiles.
+              </CardDescription>
+            </div>
+            <Button
+              onClick={exportToCSV}
+              variant="outline"
+              className="h-12 px-6 rounded-2xl border-slate-100 hover:bg-slate-50 font-black text-xs tracking-tight flex items-center gap-2 self-start md:self-auto cursor-pointer"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              EXPORT FILTERED TO CSV
+            </Button>
+          </div>
+
+          {/* Granular Filters bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-slate-50 p-4 rounded-[32px] border border-slate-100">
+            {/* Search filter */}
+            <div className="relative">
+              <Search className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 animate-pulse" />
+              <Input
+                value={histSearch}
+                onChange={(e) => setHistSearch(e.target.value)}
+                placeholder="Search name or ID..."
+                className="pl-9 h-11 rounded-xl border-none bg-white text-xs font-bold text-slate-700 shadow-sm focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Course select filter */}
+            <Select value={histCourse} onValueChange={setHistCourse}>
+              <SelectTrigger className="h-11 rounded-xl border-none bg-white text-xs font-black text-slate-700 shadow-sm">
+                <SelectValue placeholder="Course" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="All Courses">All Courses</SelectItem>
+                <SelectItem value="BCA">BCA</SelectItem>
+                <SelectItem value="BCOM">BCOM</SelectItem>
+                <SelectItem value="BBA">BBA</SelectItem>
+                <SelectItem value="BSC">BSC</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Year select filter */}
+            <Select value={histYear} onValueChange={setHistYear}>
+              <SelectTrigger className="h-11 rounded-xl border-none bg-white text-xs font-black text-slate-700 shadow-sm">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="All Years">All Years</SelectItem>
+                <SelectItem value="1st Year">1st Year</SelectItem>
+                <SelectItem value="2nd Year">2nd Year</SelectItem>
+                <SelectItem value="3rd Year">3rd Year</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Section select filter */}
+            <Select value={histSection} onValueChange={setHistSection}>
+              <SelectTrigger className="h-11 rounded-xl border-none bg-white text-xs font-black text-slate-700 shadow-sm">
+                <SelectValue placeholder="Section" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="All Sections">All Sections</SelectItem>
+                <SelectItem value="A">Section A</SelectItem>
+                <SelectItem value="B">Section B</SelectItem>
+                <SelectItem value="C">Section C</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Subject select filter */}
+            <Select value={histSubject} onValueChange={setHistSubject}>
+              <SelectTrigger className="h-11 rounded-xl border-none bg-white text-xs font-black text-slate-700 shadow-sm">
+                <SelectValue placeholder="Subject" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="All Subjects">All Subjects</SelectItem>
+                {['Computer Networks', 'Operating Systems', 'Software Engineering', 'Mathematics-III'].map((sub) => (
+                  <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Dynamic Stats for filtered values */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-2">
+            <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm">
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Records</p>
+                <p className="text-xl font-black text-slate-900 mt-1">{totalInFilter}</p>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">#</div>
+            </div>
+            
+            <div className="bg-emerald-50/30 p-4 rounded-2xl border border-emerald-50 flex items-center justify-between shadow-sm">
+              <div>
+                <p className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Present Count</p>
+                <p className="text-xl font-black text-emerald-700 mt-1">{presentInFilter}</p>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs">✓</div>
+            </div>
+
+            <div className="bg-rose-50/30 p-4 rounded-2xl border border-rose-50 flex items-center justify-between shadow-sm">
+              <div>
+                <p className="text-[10px] font-black uppercase text-rose-500 tracking-wider">Absent Count</p>
+                <p className="text-xl font-black text-rose-700 mt-1">{absentInFilter}</p>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center text-rose-500 font-bold text-xs">✗</div>
+            </div>
+
+            <div className="bg-blue-50/30 p-4 rounded-2xl border border-blue-50 flex items-center justify-between col-span-2 md:col-span-1 shadow-sm">
+              <div>
+                <p className="text-[10px] font-black uppercase text-blue-600 tracking-wider">Attendance Rate</p>
+                <p className="text-xl font-black text-blue-700 mt-1">{presentRatio}%</p>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 font-black text-xs">%</div>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="px-10 pb-10 flex-1">
+          {isLoadingAll ? (
+            <div className="py-20 flex flex-col items-center justify-center space-y-4">
+              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Compiling General Ledger...</p>
+            </div>
+          ) : filteredAllAttendance.length === 0 ? (
+            <div className="py-20 flex flex-col items-center justify-center text-slate-300">
+              <Filter className="w-16 h-16 opacity-20 mb-4 animate-bounce" />
+              <p className="text-xs font-black uppercase tracking-[0.2em] opacity-40">No records match the current filter selection</p>
+            </div>
+          ) : (
+            <div className="rounded-[32px] border border-slate-100 overflow-hidden divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+              {filteredAllAttendance.map((record) => (
+                <div 
+                  key={record.id} 
+                  className="flex flex-col lg:flex-row lg:items-center justify-between p-6 bg-white hover:bg-slate-50/50 transition-colors gap-4"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-700 font-black text-xs uppercase shadow-sm">
+                      {record.studentId?.slice(-3) || "STU"}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800 text-base">{record.name}</span>
+                        <Badge variant="outline" className="text-[9px] font-black border-slate-100 text-slate-400 px-2 py-0.5 rounded-lg">
+                          {record.studentId}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-y-1 gap-x-4 mt-1 text-xs text-slate-500 font-semibold">
+                        <span className="flex items-center gap-1">
+                          <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none font-black text-[9px] px-1.5 py-0.5 rounded">
+                            {record.course || 'BCA'}
+                          </Badge>
+                        </span>
+                        <span>•</span>
+                        <span>{record.className}</span>
+                        <span>•</span>
+                        <span className="text-slate-600 font-bold">{record.subject} ({record.hour})</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between lg:justify-end gap-6 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-100">
+                    <div className="text-left lg:text-right">
+                      <p className="text-xs font-black text-slate-700">
+                        {new Date(record.timestamp).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-0.5">
+                        {new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {/* Interactive toggle for presence status */}
+                      <button
+                        onClick={() => toggleAttendanceStatus(record)}
+                        className={cn(
+                          "px-4 py-2 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all cursor-pointer shadow-sm select-none",
+                          record.status === 'present' 
+                            ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-110" 
+                            : "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-110"
+                        )}
+                        title="Click to toggle status"
+                      >
+                        {record.status === 'present' ? '✓ Present' : '✗ Absent'}
+                      </button>
+
+                      {/* Hard Delete button */}
+                      <button
+                        onClick={() => deleteAttendanceRecord(record.id, record.name || "Student")}
+                        className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                        title="Delete Attendance Log"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

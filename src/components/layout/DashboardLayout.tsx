@@ -30,16 +30,62 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { AlertTriangle, Info } from 'lucide-react';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = React.useState(true);
   const [isMobile, setIsMobile] = React.useState(false);
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
+  const [notifications, setNotifications] = React.useState<any[]>([]);
   const location = useLocation();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    // Dynamic alerts generator from live collections
+    const unsub = onSnapshot(collection(db, 'students'), (snapshot) => {
+      const alerts: any[] = [];
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        if (data.attendanceRate && parseFloat(data.attendanceRate) < 75) {
+          alerts.push({
+            id: `low-att-${doc.id}`,
+            title: 'Low Attendance warning',
+            desc: `${data.name} has dropped below the threshold to ${data.attendanceRate}%.`,
+            time: 'Academic Alert',
+            type: 'critical'
+          });
+        }
+        if (data.gpa && parseFloat(data.gpa) > 3.8) {
+          alerts.push({
+            id: `gpa-${doc.id}`,
+            title: 'High Achiever recognized',
+            desc: `${data.name} is excelling with a outstanding GPA of ${data.gpa}!`,
+            time: 'Excellence Alert',
+            type: 'excellence'
+          });
+        }
+      });
+
+      if (alerts.length === 0) {
+        alerts.push({
+          id: 'clean-slate',
+          title: 'System nominal',
+          desc: 'No students are currently flagged. Campus metrics are in excellent standing.',
+          time: 'Active Feed',
+          type: 'info'
+        });
+      }
+      setNotifications(alerts.slice(0, 10));
+    }, (error) => {
+      console.error("Layout notifications listener failed:", error);
+    });
+
+    return () => unsub();
+  }, []);
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -164,36 +210,40 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <DropdownMenu>
               <DropdownMenuTrigger className="relative p-2 text-[#4B5563] hover:bg-[#F3F4F6] rounded-full transition-colors focus:outline-none cursor-pointer">
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#EF4444] rounded-full border-2 border-white"></span>
+                {notifications.some(n => n.id !== 'clean-slate') && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#EF4444] rounded-full border-2 border-white animate-pulse"></span>
+                )}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80 rounded-2xl border-slate-100 shadow-2xl p-2">
-                <DropdownMenuLabel className="font-black text-slate-900 px-4 py-3">Notifications</DropdownMenuLabel>
+                <DropdownMenuLabel className="font-black text-slate-900 px-4 py-3 flex items-center justify-between text-sm">
+                  <span>Notifications</span>
+                  {notifications.some(n => n.id !== 'clean-slate') && (
+                    <span className="bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+                      {notifications.filter(n => n.id !== 'clean-slate').length} Alerts
+                    </span>
+                  )}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-slate-50" />
-                <div className="max-h-[300px] overflow-y-auto">
-                    <DropdownMenuItem className="p-4 rounded-xl focus:bg-slate-50 cursor-pointer">
-                        <div className="flex gap-4">
-                            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                                <UserCheck className="w-5 h-5 text-blue-600" />
+                <div className="max-h-[300px] overflow-y-auto space-y-1 p-1">
+                    {notifications.map((notif) => (
+                      <DropdownMenuItem key={notif.id} className="p-3 rounded-xl focus:bg-slate-100 cursor-pointer">
+                        <div className="flex gap-3">
+                            <div className={cn(
+                              "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm",
+                              notif.type === 'critical' ? "bg-rose-50 text-rose-600" :
+                              notif.type === 'excellence' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
+                            )}>
+                                {notif.type === 'critical' ? <AlertTriangle className="w-4 h-4" /> :
+                                 notif.type === 'excellence' ? <Trophy className="w-4 h-4" /> : <Info className="w-4 h-4" />}
                             </div>
-                            <div>
-                                <p className="text-sm font-bold text-slate-900">Attendance Alert</p>
-                                <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">5 students flagged for low attendance this week.</p>
-                                <p className="text-[10px] font-black text-slate-400 mt-2 uppercase tracking-widest">2 mins ago</p>
-                            </div>
-                        </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="p-4 rounded-xl focus:bg-slate-50 cursor-pointer">
-                        <div className="flex gap-4">
-                            <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                                <BarChart3 className="w-5 h-5 text-amber-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold text-slate-900">Performance Report</p>
-                                <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">Monthly academic summary for Batch 2024 is ready.</p>
-                                <p className="text-[10px] font-black text-slate-400 mt-2 uppercase tracking-widest">1 hour ago</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs font-black text-slate-800 truncate leading-tight">{notif.title}</p>
+                                <p className="text-[11px] text-slate-500 mt-0.5 leading-normal break-all line-clamp-2">{notif.desc}</p>
+                                <p className="text-[9px] font-black text-slate-400 mt-1 uppercase tracking-widest leading-none">{notif.time}</p>
                             </div>
                         </div>
-                    </DropdownMenuItem>
+                      </DropdownMenuItem>
+                    ))}
                 </div>
                 <DropdownMenuSeparator className="bg-slate-100" />
                 <DropdownMenuItem className="justify-center text-xs font-black text-blue-600 py-3 cursor-pointer hover:text-blue-700">
