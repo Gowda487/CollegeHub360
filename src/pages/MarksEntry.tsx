@@ -20,7 +20,6 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { collection, addDoc, query, where, getDocs, doc, updateDoc, writeBatch } from 'firebase/firestore';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 interface MarkEntry {
   studentId: string;
@@ -106,7 +105,7 @@ export default function MarksEntry() {
   };
 
   return (
-    <DashboardLayout>
+    <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       <div className="mb-8">
           <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Marks Terminal</h1>
           <p className="text-slate-500 font-bold">AI-Augmented Academic Grading</p>
@@ -252,6 +251,6 @@ export default function MarksEntry() {
             </Card>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

@@ -40,6 +40,26 @@ function StudentProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminProtectedRoute({ user, children }: { user: User | null; children: React.ReactNode }) {
+  const [hasSession, setHasSession] = useState(() => !!localStorage.getItem('admin_session'));
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setHasSession(!!localStorage.getItem('admin_session'));
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  if (!user && !hasSession) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 const FallbackLoader = () => (
   <div className="h-screen flex items-center justify-center bg-[#F8F9FA]">
     <div className="flex flex-col items-center gap-4 animate-pulse">
@@ -93,43 +113,43 @@ export default function App() {
           
           {/* Protected Portal Routes */}
           <Route path="/overview" element={
-            user ? (
+            <AdminProtectedRoute user={user}>
               <DashboardLayout>
                 <DashboardOverview />
               </DashboardLayout>
-            ) : <Navigate to="/login" replace />
+            </AdminProtectedRoute>
           } />
 
           <Route path="/attendance" element={
-            user ? (
+            <AdminProtectedRoute user={user}>
               <DashboardLayout>
                 <AttendancePage />
               </DashboardLayout>
-            ) : <Navigate to="/login" replace />
+            </AdminProtectedRoute>
           } />
 
           <Route path="/performance" element={
-            user ? (
+            <AdminProtectedRoute user={user}>
               <DashboardLayout>
                 <PerformancePage />
               </DashboardLayout>
-            ) : <Navigate to="/login" replace />
+            </AdminProtectedRoute>
           } />
 
           <Route path="/students" element={
-            user ? (
+            <AdminProtectedRoute user={user}>
               <DashboardLayout>
                 <StudentsPage />
               </DashboardLayout>
-            ) : <Navigate to="/login" replace />
+            </AdminProtectedRoute>
           } />
 
           <Route path="/marks-entry" element={
-            user ? (
+            <AdminProtectedRoute user={user}>
               <DashboardLayout>
                 <MarksEntry />
               </DashboardLayout>
-            ) : <Navigate to="/login" replace />
+            </AdminProtectedRoute>
           } />
 
           <Route path="/student-portal" element={

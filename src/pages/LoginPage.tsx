@@ -30,13 +30,15 @@ export default function LoginPage() {
       // Try normal sign in first
       try {
         // EMERGENCY BYPASS check (Only for when browser blocks Firebase)
-        if (password === 'OVERRIDE_ADMIN' && email.includes('@')) {
-            toast.success("Safe Mode: Login bypassed.");
+        if (password === 'BhuvanGowda15' && email.includes('@')) {
+            localStorage.setItem('admin_session', 'true');
+            toast.success("Logged into admin dashboard");
             navigate('/overview');
             return;
         }
 
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        localStorage.setItem('admin_session', 'true');
         
         try {
           // Fast direct lookup of the logged-in user profile
@@ -75,6 +77,7 @@ export default function LoginPage() {
                         email: email,
                         role: 'admin'
                     });
+                    localStorage.setItem('admin_session', 'true');
                     toast.success("First admin account created!");
                     navigate('/overview');
                     return;
@@ -411,9 +414,9 @@ export default function LoginPage() {
                         </div>
 
                         <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                             <p className="text-[9px] text-slate-400 font-bold mb-1 text-center uppercase tracking-tight">Emergency Override</p>
+                             <p className="text-[9px] text-slate-400 font-bold mb-1 text-center uppercase tracking-tight">Admin Portal Access</p>
                              <p className="text-[10px] text-slate-600 text-center leading-tight">
-                                Password: <code className="text-blue-600 font-bold">OVERRIDE_ADMIN</code>
+                                Password: <code className="text-blue-600 font-bold">BhuvanGowda15</code>
                              </p>
                         </div>
                     </div>

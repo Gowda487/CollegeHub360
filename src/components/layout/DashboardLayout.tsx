@@ -104,6 +104,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = async () => {
     try {
+      localStorage.removeItem('admin_session');
       await signOut(auth);
       navigate('/');
     } catch (error) {
