@@ -1,10 +1,9 @@
 {
-  "projectId": "gen-lang-client-0591858324",
-  "appId": "1:34149092368:web:2c16cc22cc6d0346824e95",
-  "apiKey": "AIzaSyAlmzwS9swK_lweKnxT4sNl8TB1iu5ZpH4",
-  "authDomain": "gen-lang-client-0591858324.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-74bc6a44-5b03-4ae6-9fd7-67f7a002c826",
-  "storageBucket": "gen-lang-client-0591858324.firebasestorage.app",
-  "messagingSenderId": "34149092368",
-  "measurementId": ""
+  "projectId": "collegehub360",
+  "appId": "1:120226540537:web:c1fe6da9bd4eb0bb2f2b28",
+  "apiKey": "AIzaSyC-unM6n3pS4y6OX6tjfdJc-4hnFi6Jfpo",
+  "authDomain": "collegehub360.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "collegehub360.firebasestorage.app",
+  "messagingSenderId": "120226540537"
 }
