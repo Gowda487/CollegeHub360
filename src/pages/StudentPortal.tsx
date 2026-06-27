@@ -12,7 +12,14 @@ import {
   RefreshCw,
   Sparkles,
   Zap,
-  Target
+  Target,
+  Search,
+  Download,
+  ExternalLink,
+  FileText,
+  Video,
+  Code,
+  Info
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +62,125 @@ import {
   } from '@/components/ui/dropdown-menu';
 import AIChatbox from '@/components/AIChatbox';
 
+interface BcaResourceFile {
+  id: string;
+  name: string;
+  type: string;
+  size: string;
+  subject: string;
+  author: string;
+  downloadUrl: string;
+}
+
+interface BcaHubData {
+  title: string;
+  description: string;
+  accentColor: string;
+  badgeBg: string;
+  icon: any;
+  files: BcaResourceFile[];
+}
+
+const bcaResourcesData: Record<string, BcaHubData> = {
+  'lecture-notes': {
+    title: 'BCA Lecture Notes & Slides',
+    description: 'Verified syllabus-compliant notes compiled by Senior BCA Department Faculty.',
+    accentColor: 'text-blue-600',
+    badgeBg: 'bg-blue-50 text-blue-700',
+    icon: BookOpen,
+    files: [
+      { id: 'ln1', name: 'Database Management Systems (DBMS) - Comprehensive Notes', type: 'PDF Document', size: '4.8 MB', subject: 'BCA-202 (Database)', author: 'Prof. Anitha Rao', downloadUrl: '#' },
+      { id: 'ln2', name: 'Data Structures & Algorithms - Complete Lab Manual & Slides', type: 'PDF Document', size: '6.2 MB', subject: 'BCA-201 (DSA)', author: 'Dr. Ramesh Kumar', downloadUrl: '#' },
+      { id: 'ln3', name: 'Modern Web Development with HTML5, CSS3, ES6 & React', type: 'PDF Document', size: '3.5 MB', subject: 'BCA-402 (Web Tech)', author: 'Prof. Bhuvan Gowda', downloadUrl: '#' },
+      { id: 'ln4', name: 'Object-Oriented Programming with C++ & Java Core Slides', type: 'PDF Document', size: '5.1 MB', subject: 'BCA-203 (OOPs)', author: 'Prof. Sneha Deshmukh', downloadUrl: '#' },
+      { id: 'ln5', name: 'Software Engineering Principles & Agile Methodologies', type: 'PDF Document', size: '2.9 MB', subject: 'BCA-304 (SE)', author: 'Dr. Vivek Varma', downloadUrl: '#' },
+      { id: 'ln6', name: 'Operating System Design Concepts & Linux Commands Sheet', type: 'PDF Document', size: '4.2 MB', subject: 'BCA-301 (OS)', author: 'Prof. Rajesh Hegde', downloadUrl: '#' },
+    ]
+  },
+  'assessment-prep': {
+    title: 'BCA Exam Prep & Question Banks',
+    description: 'Boost your exam scores with fully-solved previous year questions and practice assignments.',
+    accentColor: 'text-rose-600',
+    badgeBg: 'bg-rose-50 text-rose-700',
+    icon: Target,
+    files: [
+      { id: 'ap1', name: 'DBMS Semester Exam Solved Question Papers (2022-2025)', type: 'Exam Guide', size: '2.1 MB', subject: 'BCA-202 (Database)', author: 'Academic Cell', downloadUrl: '#' },
+      { id: 'ap2', name: 'Data Structures Viva Questions & Quick-Revision Cheat Sheet', type: 'Lab Prep', size: '1.2 MB', subject: 'BCA-201 (DSA)', author: 'Dr. Ramesh Kumar', downloadUrl: '#' },
+      { id: 'ap3', name: 'Java Programming Mock Interview & Semester Practical Exercises', type: 'Exam Guide', size: '1.8 MB', subject: 'BCA-303 (Java)', author: 'Prof. Sneha Deshmukh', downloadUrl: '#' },
+      { id: 'ap4', name: 'Computer Networks - Practice MCQ Bank & Network Protocols Manual', type: 'Revision Key', size: '3.0 MB', subject: 'BCA-302 (Networks)', author: 'Dr. Vivek Varma', downloadUrl: '#' },
+    ]
+  },
+  'video-archive': {
+    title: 'BCA Recorded Lectures & Code Tutorials',
+    description: 'Curated high-definition video walkthroughs covering core theories and terminal-level coding tutorials.',
+    accentColor: 'text-amber-600',
+    badgeBg: 'bg-amber-50 text-amber-700',
+    icon: Sparkles,
+    files: [
+      { id: 'va1', name: 'Database Normalization (1NF, 2NF, 3NF, BCNF) Made Easy', type: 'Video Lesson', size: '45 mins', subject: 'BCA-202 (Database)', author: 'Prof. Anitha Rao', downloadUrl: '#' },
+      { id: 'va2', name: 'Implementing Dynamic Linked Lists, Stacks, & Queues in C', type: 'Code Walkthrough', size: '62 mins', subject: 'BCA-201 (DSA)', author: 'Dr. Ramesh Kumar', downloadUrl: '#' },
+      { id: 'va3', name: 'React JS Full Stack Crash Course for BCA Projects', type: 'Video Series', size: '120 mins', subject: 'BCA-402 (Web Tech)', author: 'Prof. Bhuvan Gowda', downloadUrl: '#' },
+      { id: 'va4', name: 'Understanding IP Addressing, Subnetting, & CIDR Notation', type: 'Animation Walkthrough', size: '35 mins', subject: 'BCA-302 (Networks)', author: 'Dr. Vivek Varma', downloadUrl: '#' },
+    ]
+  },
+  'source-assets': {
+    title: 'BCA Project Source Code & Assets',
+    description: 'Download verified starter packs, boilerplate codes, and database schemas for final year and lab projects.',
+    accentColor: 'text-emerald-600',
+    badgeBg: 'bg-emerald-50 text-emerald-700',
+    icon: Zap,
+    files: [
+      { id: 'sa1', name: 'Responsive College Portal Template (React + Tailwind CSS)', type: 'GitHub Repo', size: 'Source ZIP', subject: 'BCA-Project', author: 'Tech Club', downloadUrl: '#' },
+      { id: 'sa2', name: 'Library Management System Code (Java Swing + JDBC + MySQL)', type: 'GitHub Repo', size: 'Source ZIP', subject: 'BCA-303 (Java)', author: 'Student Innovators', downloadUrl: '#' },
+      { id: 'sa3', name: 'Attendance QR Scanner App System (Python OpenCV & Flask)', type: 'GitHub Repo', size: 'Source ZIP', subject: 'BCA-Project', author: 'Core Dev Team', downloadUrl: '#' },
+      { id: 'sa4', name: 'E-commerce Database SQL Script & Schema Architecture Diagram', type: 'SQL Script', size: '12 KB', subject: 'BCA-202 (Database)', author: 'Prof. Anitha Rao', downloadUrl: '#' },
+    ]
+  }
+};
+
+const bcaSyllabus = [
+  {
+    semester: 1,
+    title: 'Semester 1',
+    subjects: [
+      { code: 'BCA-101', name: 'Programming in C', credits: 4, type: 'Core Theory + Practical' },
+      { code: 'BCA-102', name: 'Computer Fundamentals & IT', credits: 3, type: 'Core Theory' },
+      { code: 'BCA-103', name: 'Mathematical Foundation', credits: 4, type: 'Allied Mathematics' },
+      { code: 'BCA-104', name: 'Technical Communication', credits: 2, type: 'Ability Enhancement' }
+    ]
+  },
+  {
+    semester: 2,
+    title: 'Semester 2',
+    subjects: [
+      { code: 'BCA-201', name: 'Data Structures using C', credits: 4, type: 'Core Theory + Practical' },
+      { code: 'BCA-202', name: 'Database Management Systems', credits: 4, type: 'Core Theory + Practical' },
+      { code: 'BCA-203', name: 'OOPs with C++', credits: 3, type: 'Core Theory' },
+      { code: 'BCA-204', name: 'Environmental Studies', credits: 2, type: 'Ability Enhancement' }
+    ]
+  },
+  {
+    semester: 3,
+    title: 'Semester 3 (Current)',
+    subjects: [
+      { code: 'BCA-301', name: 'Operating Systems', credits: 4, type: 'Core Theory' },
+      { code: 'BCA-302', name: 'Computer Networks', credits: 4, type: 'Core Theory' },
+      { code: 'BCA-303', name: 'Java Programming', credits: 4, type: 'Core Theory + Practical' },
+      { code: 'BCA-304', name: 'Software Engineering', credits: 3, type: 'Core Theory' }
+    ]
+  },
+  {
+    semester: 4,
+    title: 'Semester 4',
+    subjects: [
+      { code: 'BCA-401', name: 'Python Programming & Scripting', credits: 4, type: 'Core Theory + Practical' },
+      { code: 'BCA-402', name: 'Web Technology (React, Node)', credits: 4, type: 'Core Theory + Practical' },
+      { code: 'BCA-403', name: 'Cloud Computing & DevOps', credits: 3, type: 'Core Elective' },
+      { code: 'BCA-404', name: 'Introduction to AI & ML', credits: 3, type: 'Specialization' }
+    ]
+  }
+];
+
 export default function StudentPortal() {
   const [studentData, setStudentData] = useState<any>(null);
   const [marks, setMarks] = useState<any[]>([]);
@@ -82,6 +208,11 @@ export default function StudentPortal() {
   });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const navigate = useNavigate();
+
+  const [selectedHubKey, setSelectedHubKey] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeBcaSemester, setActiveBcaSemester] = useState<number>(3);
+  const [isSyllabusOpen, setIsSyllabusOpen] = useState(false);
 
   useEffect(() => {
     if (studentData) {
@@ -652,20 +783,31 @@ export default function StudentPortal() {
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Resource Hub</h2>
-                    <p className="text-slate-500 font-medium">Synced Cloud Library for your courses</p>
+                    <p className="text-slate-500 font-medium">Synced Cloud Library for your BCA courses</p>
                 </div>
-                <Button variant="outline" className="rounded-2xl h-12 px-6 font-black border-slate-200">
-                    <BookOpen className="w-5 h-5 mr-3 text-blue-600" /> Global Library
+                <Button 
+                    variant="outline" 
+                    onClick={() => setIsSyllabusOpen(true)}
+                    className="rounded-2xl h-12 px-6 font-black border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors"
+                >
+                    <GraduationCap className="w-5 h-5 mr-3 text-blue-600" /> BCA Course Syllabus
                 </Button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {[
-                    { name: 'Lecture Notes', count: '12 Files', icon: BookOpen, color: 'bg-blue-50 text-blue-600' },
-                    { name: 'Assessment Prep', count: '4 Guides', icon: Target, color: 'bg-rose-50 text-rose-600' },
-                    { name: 'Video Archive', count: '18 Lessons', icon: Sparkles, color: 'bg-amber-50 text-amber-600' },
-                    { name: 'Source Assets', count: '6 Projects', icon: Zap, color: 'bg-emerald-50 text-emerald-600' },
-                ].map((hub, idx) => (
-                    <Card key={idx} className="rounded-[40px] border-none shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all p-8 cursor-pointer group">
+                    { key: 'lecture-notes', name: 'BCA Lecture Notes', count: '6 Core Files', icon: BookOpen, color: 'bg-blue-50 text-blue-600' },
+                    { key: 'assessment-prep', name: 'BCA Assessment Prep', count: '4 Solved Papers', icon: Target, color: 'bg-rose-50 text-rose-600' },
+                    { key: 'video-archive', name: 'BCA Video Archive', count: '4 Tutorials', icon: Sparkles, color: 'bg-amber-50 text-amber-600' },
+                    { key: 'source-assets', name: 'BCA Source Assets', count: '4 Projects', icon: Zap, color: 'bg-emerald-50 text-emerald-600' },
+                ].map((hub) => (
+                    <Card 
+                        key={hub.key} 
+                        onClick={() => {
+                            setSelectedHubKey(hub.key);
+                            setSearchQuery('');
+                        }}
+                        className="rounded-[40px] border-none shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all p-8 cursor-pointer group bg-white border border-transparent hover:border-slate-100"
+                    >
                         <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform", hub.color)}>
                             <hub.icon className="w-7 h-7" />
                         </div>
@@ -675,6 +817,175 @@ export default function StudentPortal() {
                 ))}
             </div>
         </section>
+
+        {/* Dynamic Resource Hub Dialog */}
+        <Dialog open={!!selectedHubKey} onOpenChange={(open) => { if (!open) setSelectedHubKey(null); }}>
+            <DialogContent className="max-w-4xl rounded-[40px] border-none shadow-2xl p-8 bg-white max-h-[85vh] overflow-y-auto">
+                {selectedHubKey && bcaResourcesData[selectedHubKey] && (() => {
+                    const hub = bcaResourcesData[selectedHubKey];
+                    const HubIcon = hub.icon;
+                    
+                    // Filter files based on query
+                    const filteredFiles = hub.files.filter(f => 
+                        f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        f.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        f.author.toLowerCase().includes(searchQuery.toLowerCase())
+                    );
+
+                    return (
+                        <div className="space-y-6">
+                            <DialogHeader>
+                                <div className="flex items-start gap-4">
+                                    <div className={cn("p-4 rounded-3xl", hub.badgeBg)}>
+                                        <HubIcon className="w-8 h-8" />
+                                    </div>
+                                    <div className="text-left">
+                                        <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">{hub.title}</DialogTitle>
+                                        <DialogDescription className="font-bold text-slate-400 mt-1">{hub.description}</DialogDescription>
+                                    </div>
+                                </div>
+                            </DialogHeader>
+
+                            {/* Search bar */}
+                            <div className="relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                                <Input 
+                                    placeholder="Search by topic, course code, or professor..." 
+                                    className="pl-12 h-14 rounded-2xl border-slate-100 bg-slate-50 font-bold focus-visible:ring-blue-500"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Files list */}
+                            <div className="space-y-3 mt-4">
+                                {filteredFiles.length === 0 ? (
+                                    <div className="py-12 text-center text-slate-400 font-bold">
+                                        No BCA resources match your search query.
+                                    </div>
+                                ) : (
+                                    filteredFiles.map((file) => (
+                                        <div 
+                                            key={file.id}
+                                            className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-3xl bg-slate-50 border border-slate-100 hover:border-blue-100 hover:bg-blue-50/10 transition-all gap-4"
+                                        >
+                                            <div className="flex items-start gap-4">
+                                                <div className="p-3 bg-white rounded-2xl border border-slate-100 shadow-sm text-slate-500">
+                                                    {selectedHubKey === 'video-archive' ? (
+                                                        <Video className="w-5 h-5 text-amber-500" />
+                                                    ) : selectedHubKey === 'source-assets' ? (
+                                                        <Code className="w-5 h-5 text-emerald-500" />
+                                                    ) : (
+                                                        <FileText className="w-5 h-5 text-blue-500" />
+                                                    )}
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="font-black text-slate-900 leading-snug">{file.name}</p>
+                                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-500 font-semibold">
+                                                        <span className="font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">{file.subject}</span>
+                                                        <span>•</span>
+                                                        <span>{file.type}</span>
+                                                        <span>•</span>
+                                                        <span>{file.size}</span>
+                                                        <span>•</span>
+                                                        <span className="text-slate-400">By {file.author}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button 
+                                                onClick={() => {
+                                                    toast.success(`Download started: ${file.name}`, {
+                                                        description: `Retrieved successfully from BCA cloud vault.`,
+                                                    });
+                                                }}
+                                                className="h-11 px-5 rounded-xl bg-slate-950 hover:bg-black font-black text-xs uppercase tracking-wider text-white gap-2 cursor-pointer self-start sm:self-center"
+                                            >
+                                                <Download className="w-4 h-4 text-white" />
+                                                Retrieve
+                                            </Button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                            
+                            <DialogFooter className="pt-4 border-t border-slate-100">
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => setSelectedHubKey(null)}
+                                    className="rounded-xl font-black text-xs uppercase tracking-wider h-11 border-slate-200"
+                                >
+                                    Close Vault
+                                </Button>
+                            </DialogFooter>
+                        </div>
+                    );
+                })()}
+            </DialogContent>
+        </Dialog>
+
+        {/* BCA Course Syllabus Overview Dialog */}
+        <Dialog open={isSyllabusOpen} onOpenChange={setIsSyllabusOpen}>
+            <DialogContent className="max-w-4xl rounded-[40px] border-none shadow-2xl p-8 bg-white max-h-[85vh] overflow-y-auto">
+                <div className="space-y-6">
+                    <DialogHeader>
+                        <div className="flex items-start gap-4">
+                            <div className="p-4 rounded-3xl bg-blue-600 text-white shadow-lg shadow-blue-100">
+                                <GraduationCap className="w-8 h-8" />
+                            </div>
+                            <div className="text-left">
+                                <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">BCA Curriculum & Credits</DialogTitle>
+                                <DialogDescription className="font-bold text-slate-400 mt-1">Bachelor of Computer Applications official course progression</DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+
+                    {/* Semester Tabs */}
+                    <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-2">
+                        {bcaSyllabus.map((sem) => (
+                            <button
+                                key={sem.semester}
+                                onClick={() => setActiveBcaSemester(sem.semester)}
+                                className={cn(
+                                    "flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer",
+                                    activeBcaSemester === sem.semester 
+                                        ? "bg-white text-slate-900 shadow-sm font-black" 
+                                        : "text-slate-500 hover:text-slate-900 font-bold"
+                                )}
+                            >
+                                {sem.title}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Syllabus Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {bcaSyllabus.find(s => s.semester === activeBcaSemester)?.subjects.map((sub, idx) => (
+                            <div key={idx} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 hover:bg-slate-100/30 transition-all text-left">
+                                <div className="flex justify-between items-start gap-2">
+                                    <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase tracking-wider">{sub.code}</span>
+                                    <span className="text-xs font-black text-slate-400 bg-white border border-slate-100 px-2 py-1 rounded-lg">{sub.credits} Credits</span>
+                                </div>
+                                <h4 className="text-lg font-black text-slate-950 mt-3 leading-snug">{sub.name}</h4>
+                                <div className="flex items-center gap-1.5 mt-2">
+                                    <Info className="w-3.5 h-3.5 text-slate-400" />
+                                    <span className="text-xs font-bold text-slate-400">{sub.type}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <DialogFooter className="pt-4 border-t border-slate-100">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setIsSyllabusOpen(false)}
+                            className="rounded-xl font-black text-xs uppercase tracking-wider h-11 border-slate-200"
+                        >
+                            Close Curriculum
+                        </Button>
+                    </DialogFooter>
+                </div>
+            </DialogContent>
+        </Dialog>
       </main>
       
       <AIChatbox studentData={studentData} />

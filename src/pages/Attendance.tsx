@@ -278,53 +278,68 @@ export default function AttendancePage() {
     }
   }, [webcamRef]);
 
-  const handleRegistrationAndAttendance = async () => {
+  const handleSaveAction = async () => {
     if (!result) return;
     setIsSaving(true);
     try {
-      // 1. Create Student Profile if new
-      if (!isExisting) {
-          await addDoc(collection(db, 'students'), {
-              studentId: result.studentId.toUpperCase(),
-              name: result.name,
-              course: result.course || 'Not Set',
-              email: registrationData.email,
-              phone: registrationData.phone,
-              batch: registrationData.batch,
-              password: 'STU' + result.studentId.slice(-4), // Default password
-              gpa: 0,
-              attendanceRate: 0,
-              createdAt: new Date().toISOString()
-          });
-          toast.success("Profile created successfully!");
+      if (mode === 'REGISTRATION') {
+          // 1. Only Create Student Profile in Registration Mode
+          if (!isExisting) {
+              await addDoc(collection(db, 'students'), {
+                  studentId: result.studentId.toUpperCase(),
+                  name: result.name,
+                  course: result.course || 'Not Set',
+                  email: registrationData.email,
+                  phone: registrationData.phone,
+                  batch: registrationData.batch,
+                  password: 'STU' + result.studentId.slice(-4), // Default password
+                  gpa: 0,
+                  attendanceRate: 0,
+                  createdAt: new Date().toISOString()
+              });
+              toast.success("Student profile registered successfully!", {
+                  description: "This student is now registered in the system. Switch to Attendance mode to log attendance."
+              });
+          }
+      } else {
+          // 2. Mark Attendance only for already registered students (or verified OCR captures)
+          if (isExisting) {
+              await addDoc(collection(db, 'attendance'), {
+                studentId: result.studentId,
+                name: result.name,
+                course: result.course,
+                className: selectedClass,
+                subject: selectedSubject,
+                hour: selectedHour,
+                status: 'present',
+                timestamp: new Date().toISOString(),
+                isRegistrationScan: false
+              });
+              toast.success(`Attendance marked for ${selectedClass}`);
+          } else {
+              toast.error("Cannot mark attendance for unregistered student. Please register them first.");
+              setIsSaving(false);
+              return;
+          }
       }
 
-      // 2. Mark Attendance with Class context
-      await addDoc(collection(db, 'attendance'), {
-        studentId: result.studentId,
-        name: result.name,
-        course: result.course,
-        className: selectedClass,
-        subject: selectedSubject,
-        hour: selectedHour,
-        status: 'present',
-        timestamp: new Date().toISOString(),
-        isRegistrationScan: !isExisting
-      });
-
-      toast.success(`Attendance marked for ${selectedClass}`);
       setScanStatus('success');
       setLastScannedName(result.name);
       
       setResult(null);
       setIsExisting(null);
       setIsScanning(true);
+      setRegistrationData({
+        phone: '',
+        email: '',
+        batch: '2024'
+      });
 
       setTimeout(() => {
         setScanStatus(null);
       }, 3000);
     } catch (e) {
-      handleFirestoreError(e, OperationType.CREATE, 'attendance');
+      handleFirestoreError(e, OperationType.CREATE, mode === 'REGISTRATION' ? 'students' : 'attendance');
       toast.error("Process failed. Check your connection.");
     } finally {
       setIsSaving(false);
@@ -912,20 +927,55 @@ export default function AttendancePage() {
                     )}
 
                     <div className="pt-8 border-t border-slate-100 flex flex-col gap-4">
-                        <Button 
-                            onClick={handleRegistrationAndAttendance}
-                            disabled={isSaving}
-                            className={cn(
-                                "w-full h-16 rounded-[24px] font-black text-lg transition-all shadow-xl",
-                                isExisting ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100" : "bg-amber-600 hover:bg-amber-700 shadow-amber-100"
-                            )}
-                        >
-                            {isSaving ? <RefreshCw className="animate-spin w-6 h-6 mr-3" /> : (isExisting ? <CheckCircle2 className="w-6 h-6 mr-3" /> : <UserPlus className="w-6 h-6 mr-3" />)}
-                            {isExisting ? "Mark Regularity" : "Register & Mark Entry"}
-                        </Button>
+                        {mode === 'REGISTRATION' ? (
+                            isExisting ? (
+                                <Button 
+                                    onClick={() => {
+                                        setMode('ATTENDANCE');
+                                        setResult(null);
+                                        setIsExisting(null);
+                                        setIsScanning(true);
+                                    }}
+                                    className="w-full h-16 rounded-[24px] font-black text-lg bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all flex items-center justify-center text-white cursor-pointer"
+                                >
+                                    <RefreshCw className="w-6 h-6 mr-3 text-white" />
+                                    Switch to Attendance Mode
+                                </Button>
+                            ) : (
+                                <Button 
+                                    onClick={handleSaveAction}
+                                    disabled={isSaving}
+                                    className="w-full h-16 rounded-[24px] font-black text-lg bg-amber-600 hover:bg-amber-700 shadow-xl shadow-amber-100 transition-all flex items-center justify-center text-white cursor-pointer"
+                                >
+                                    {isSaving ? <RefreshCw className="animate-spin w-6 h-6 mr-3 text-white" /> : <UserPlus className="w-6 h-6 mr-3 text-white" />}
+                                    Register Student Profile
+                                </Button>
+                            )
+                        ) : (
+                            isExisting ? (
+                                <Button 
+                                    onClick={handleSaveAction}
+                                    disabled={isSaving}
+                                    className="w-full h-16 rounded-[24px] font-black text-lg bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all flex items-center justify-center text-white cursor-pointer"
+                                >
+                                    {isSaving ? <RefreshCw className="animate-spin w-6 h-6 mr-3 text-white" /> : <CheckCircle2 className="w-6 h-6 mr-3 text-white" />}
+                                    Mark Regularity
+                                </Button>
+                            ) : (
+                                <Button 
+                                    onClick={() => {
+                                        setMode('REGISTRATION');
+                                    }}
+                                    className="w-full h-16 rounded-[24px] font-black text-lg bg-amber-600 hover:bg-amber-700 shadow-xl shadow-amber-100 transition-all flex items-center justify-center text-white cursor-pointer"
+                                >
+                                    <UserPlus className="w-6 h-6 mr-3 text-white" />
+                                    Go to Registration
+                                </Button>
+                            )
+                        )}
                         <Button 
                             variant="ghost" 
-                            className="w-full h-14 rounded-[24px] font-black text-slate-400 hover:bg-slate-50" 
+                            className="w-full h-14 rounded-[24px] font-black text-slate-400 hover:bg-slate-50 cursor-pointer" 
                             onClick={() => { setResult(null); setIsExisting(null); setIsScanning(true); }}
                         >
                             Discard Scan
