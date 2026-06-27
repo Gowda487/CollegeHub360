@@ -50,14 +50,17 @@ enableMultiTabIndexedDbPersistence(db).catch((err) => {
 /**
  * Firestore operation types
  */
-export enum OperationType {
-  CREATE = "create",
-  UPDATE = "update",
-  DELETE = "delete",
-  LIST = "list",
-  GET = "get",
-  WRITE = "write",
-}
+export const OperationType = {
+  CREATE: "create",
+  UPDATE: "update",
+  DELETE: "delete",
+  LIST: "list",
+  GET: "get",
+  WRITE: "write",
+} as const;
+
+export type OperationType =
+  typeof OperationType[keyof typeof OperationType];
 
 /**
  * Auth info structure
@@ -85,7 +88,7 @@ export function handleFirestoreError(
   error: unknown,
   operationType: OperationType,
   path: string | null
-): never {
+): void {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     operationType,
